@@ -30,5 +30,84 @@ app.get('/jokes', async (req, res, next) => {
   }
 });
 
+app.post(
+  "/jokes",
+  [
+    check("content").not().isEmpty().trim(),
+    check("tags").not().isEmpty().trim(),
+  ],
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.send({ error: errors.array() });
+      } else {
+        const { content, tags } = req.body;
+        // console.log(req.body);
+
+        await Joke.create({ joke: content, tags: tags });
+
+        const allJokes = await Joke.findAll();
+
+        res.send(allJokes);
+      }
+    } catch (error) {
+      console.error(error);
+      next(error);
+    }
+  }
+);
+
+app.delete("/jokes/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const joke = await Joke.findByPk(id);
+    await joke.destroy();
+
+    const jokesLeft = await Joke.findAll();
+
+    res.send(jokesLeft);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+});
+
+app.get("/jokes/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const joke = await Joke.findByPk(id);
+
+    if (joke == null) {
+      throw new Error("Invalid request, joke requested is not available.");
+    }
+
+    res.send(joke);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+});
+
+app.put("/jokes/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { content, tags } = req.body;
+    const joke = await Joke.findByPk(id);
+
+    const update = {};
+    if (tags) update.tags = tags;
+    if (content) update.joke = content;
+
+    await joke.update({ ...update });
+
+    res.send(joke);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+});
+
+
 // we export the app, not listening in here, so that we can run tests
 module.exports = app;
